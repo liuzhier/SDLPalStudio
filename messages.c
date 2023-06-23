@@ -179,6 +179,20 @@ static const CHAR DirectionID[][iMessagesChildLen][16] = {
 	{ "0xFFFF", "方向不变" }
 };
 
+static const CHAR BattlePlayerEffectID[][iMessagesChildLen][32] = {
+	{ "0x0000", "李逍遥·持剑" },
+	{ "0x0001", "赵灵儿·持剑" },
+	{ "0x0002", "林月如·持刀" },
+	{ "0x0003", "巫后·持杖" },
+	{ "0x0004", "阿奴·持杖" },
+	{ "0x0005", "赵灵儿·灵蛇" },
+	{ "0x0006", "林月如·持鞭" },
+	{ "0x0007", "阿奴·持刀" },
+	{ "0x0008", "盖罗娇·赤手" },
+	{ "0x0009", "赵灵儿·完全觉醒·持杖" },
+	{ "0x000A", "阿奴·持杖" }
+};
+
 static const CHAR EnemyDataID[][iMessagesChildLen][16] = {
 	{ "0x0000", "无" },
 	{ "0x0001", "史莱姆" },

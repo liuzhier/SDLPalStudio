@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-#define PAL_DEBUG 0
+#define PAL_DEBUG 1
 
 // 游戏资源目录
 #if PAL_DEBUG

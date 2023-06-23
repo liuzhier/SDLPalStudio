@@ -173,7 +173,7 @@ PAL_LoadDefaultGame(
 
 	//
 	// Load the default data from the game data files.
-	//
+	// 新的故事，读取初始场景、事件、队员数据
 	LOAD_DATA(p->lprgEventObject, p->nEventObject * sizeof(EVENTOBJECT),
 		0, gpGlobals->f.fpSSS);
 	PAL_MKFReadChunk((LPBYTE)(p->rgScene), sizeof(p->rgScene), 1, gpGlobals->f.fpSSS);
@@ -1014,7 +1014,6 @@ PAL_SaveGameBaseLevelUpMagic(
 {
 	WORD  wLevelUpMagicIndex, wLevelUpMagicArgsIndex, wThisLevel, wThisWord;
 
-	LPLEVELUPMAGIC lpLevelUpMagic = gpGlobals->g.lprgLevelUpMagic;
 	LPLEVELUPMAGIC lpThisLevelUpMagic;
 
 	LPSTR lpsHex = (LPSTR)UTIL_malloc(5);
@@ -1065,6 +1064,134 @@ PAL_SaveGameBaseLevelUpMagic(
 	// 释放内存
 	free(lpsHex);
 	free(lpTextLevelUpMagic);
+	free(lpThisMagic);
+}
+
+static VOID
+PAL_SaveGameBaseBattleEffectIndex(
+	VOID
+)
+{
+	WORD wBattleEffectIndex;
+
+	WORD* lpThisBattleEffectIndex;
+
+	LPSTR lpsHex = (LPSTR)UTIL_malloc(5);
+	LPSTR lpTextBattleEffectIndex = (LPSTR)UTIL_malloc(0xFFFF * 256);
+	memset(lpsHex, 0, sizeof(lpsHex));
+	memset(lpTextBattleEffectIndex, 0, sizeof(lpTextBattleEffectIndex));
+
+	// 拼接表头
+	strcat(lpTextBattleEffectIndex, "\n战效编号\t索引1\t索引2");
+
+	for (wBattleEffectIndex = 0; wBattleEffectIndex < 10; wBattleEffectIndex++)
+	{
+		// 获取当前仙术所需修行条目
+		lpThisBattleEffectIndex = &gpGlobals->g.rgwBattleEffectIndex[wBattleEffectIndex];
+
+		// 拼接索引
+		sprintf(lpTextBattleEffectIndex, "%s\n%s\n@%s", lpTextBattleEffectIndex, BattlePlayerEffectID[wBattleEffectIndex][1], UTIL_DecToHex(wBattleEffectIndex, lpsHex, 4));
+
+		// 拼接仙术所需修行参数
+		sprintf(lpTextBattleEffectIndex, "%s\t%d\t%d", lpTextBattleEffectIndex, lpThisBattleEffectIndex[0], lpThisBattleEffectIndex[1]);
+
+		// 解档进度.....
+		printf("BattleEffectIndex: %d / %d\n", wBattleEffectIndex + 1, 10);
+
+	}
+
+	// 保存文件 BattleEffectIndex.txt
+	UTIL_SaveText(lpszPalMassagesPath, "w", lpTextBattleEffectIndex, "BattleEffectIndex.txt");
+
+	// 释放内存
+	free(lpsHex);
+	free(lpTextBattleEffectIndex);
+}
+
+static VOID
+PAL_SaveGameBaseEnemyPos(
+	VOID
+)
+{
+	WORD wEnemyPosIndex, wEnemyPosArgsIndex;
+
+	LPPALPOS lpThisEnemyPos;
+
+	PALPOS thisEnemyPos;
+
+	LPSTR lpsHex = (LPSTR)UTIL_malloc(5);
+	LPSTR lpTextEnemyPos = (LPSTR)UTIL_malloc(0xFFFF * 256);
+	memset(lpsHex, 0, sizeof(lpsHex));
+	memset(lpTextEnemyPos, 0, sizeof(lpTextEnemyPos));
+
+	// 拼接表头
+	strcat(lpTextEnemyPos, "\nEMPos\tPos0_X\tPos0_Y\tPos1_X\tPos1_Y\tPos2_X\tPos2_Y\tPos3_X\tPos3_Y\tPos4_X\tPos4_Y");
+
+	for (wEnemyPosIndex = 0; wEnemyPosIndex < MAX_ENEMIES_IN_TEAM; wEnemyPosIndex++)
+	{
+		// 获取当前仙术所需修行条目
+		lpThisEnemyPos = &gpGlobals->g.EnemyPos.pos[wEnemyPosIndex];
+
+		// 拼接索引
+		sprintf(lpTextEnemyPos, "%s\n@%s", lpTextEnemyPos, UTIL_DecToHex(wEnemyPosIndex, lpsHex, 4));
+
+		// 拼接仙术所需修行参数
+		for (wEnemyPosArgsIndex = 0; wEnemyPosArgsIndex < MAX_ENEMIES_IN_TEAM; wEnemyPosArgsIndex++)
+		{
+			thisEnemyPos = lpThisEnemyPos[wEnemyPosArgsIndex];
+			sprintf(lpTextEnemyPos, "%s\t%d\t%d", lpTextEnemyPos, thisEnemyPos.x, thisEnemyPos.y);
+		}
+
+		// 解档进度.....
+		printf("EnemyPos: %d / %d\n", wEnemyPosIndex + 1, MAX_ENEMIES_IN_TEAM);
+
+	}
+
+	// 保存文件 EnemyPos.txt
+	UTIL_SaveText(lpszPalMassagesPath, "w", lpTextEnemyPos, "EnemyPos.txt");
+
+	// 释放内存
+	free(lpsHex);
+	free(lpTextEnemyPos);
+}
+
+static VOID
+PAL_SaveGameBaseLevelUpExp(
+	VOID
+)
+{
+	WORD wLevelUpExpIndex;
+
+	LPSTR lpsHex = (LPSTR)UTIL_malloc(5);
+	LPSTR lpTextLevelUpExp = (LPSTR)UTIL_malloc(0xFFFF * 256);
+	memset(lpsHex, 0, sizeof(lpsHex));
+	memset(lpTextLevelUpExp, 0, sizeof(lpTextLevelUpExp));
+
+	for (wLevelUpExpIndex = 0; wLevelUpExpIndex < MAX_LEVELS + 1; wLevelUpExpIndex++)
+	{
+		if (wLevelUpExpIndex % 10 == 0)
+		{
+			// 拼接表头
+			strcat(lpTextLevelUpExp, "\n\n修行编号\t所需经历\t修行数");
+		}
+
+		// 拼接索引
+		sprintf(lpTextLevelUpExp, "%s\n@%s", lpTextLevelUpExp, UTIL_DecToHex(wLevelUpExpIndex, lpsHex, 4));
+
+		// 拼接仙术所需修行参数
+		sprintf(lpTextLevelUpExp, "%s\t%d\t修行%d", lpTextLevelUpExp, gpGlobals->g.rgLevelUpExp[wLevelUpExpIndex], wLevelUpExpIndex);
+
+		// 解档进度.....
+		printf("LevelUpExp: %d / %d\n", wLevelUpExpIndex + 1, MAX_LEVELS + 1);
+
+	}
+
+	// 保存文件 LevelUpExp.txt
+	UTIL_SaveText(lpszPalMassagesPath, "w", lpTextLevelUpExp, "LevelUpExp.txt");
+
+	// 释放内存
+	free(lpsHex);
+	free(lpTextLevelUpExp);
 }
 
 VOID
@@ -1114,6 +1241,15 @@ PAL_LoadGameData(
 	//
 	// 解档领悟仙术所需修行
 	PAL_SaveGameBaseLevelUpMagic();
+	//
+	// 解档我方施法特效具体设定
+	PAL_SaveGameBaseBattleEffectIndex();
+	//
+	// 解档战场中敌人数量对应坐标
+	PAL_SaveGameBaseEnemyPos();
+	//
+	// 解档我方修行晋所需经历
+	PAL_SaveGameBaseLevelUpExp();
 
 	// 释放全局数据
 	PAL_FreeGlobals();
@@ -1154,24 +1290,6 @@ PAL_InitGlobals(
 	// Retrieve game resource version
 	//
 	if (!PAL_IsWINVersion()) return -1;
-
-	//
-	// Enable AVI playing only when the resource is WIN95
-	//
-	//gConfig.fEnableAviPlay = gConfig.fEnableAviPlay && gConfig.fIsWIN95;
-
-	//
-	// Detect game language only when no message file specified
-	//
-	//if (!gConfig.pszMsgFile) PAL_SetCodePage(PAL_DetectCodePage("word.dat"));
-
-	//
-	// Set decompress function
-	//
-	//Decompress = gConfig.fIsWIN95 ? YJ2_Decompress : YJ1_Decompress;
-
-	//gpGlobals->lpObjectDesc = gConfig.fIsWIN95 ? NULL : PAL_LoadObjectDesc("desc.dat");
-	//gpGlobals->bCurrentSaveSlot = 1;
 
 	return 0;
 }

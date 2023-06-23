@@ -302,7 +302,7 @@ typedef struct tagPALPOS
 {
 	WORD      x;
 	WORD      y;
-} PALPOS;
+} PALPOS, * LPPALPOS;
 
 typedef struct tagENEMYPOS
 {
