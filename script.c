@@ -16,7 +16,6 @@ PAL_GetScriptMessage(
 
 	wOperation = (wOperation == 0xFFFF) ? (wScriptMessageLen - 1) : wOperation;
 
-	CHAR strThisWord[11];
 	CHAR strToHex[5];
 	CHAR strLong2Str[6];
 

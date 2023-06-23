@@ -148,7 +148,10 @@ PAL_BIG5ToGB(
 	LPCSTR     lpszBIG5String
 )
 {
-
+	//
+	// FIXME: To be supplemented...
+	//
+	return NULL;
 }
 
 LPCSTR
