@@ -502,7 +502,7 @@ PAL_SaveGameScene(
 		wThisSceneEventNum = rgNextScene.wEventObjectIndex - rgThisScene.wEventObjectIndex;
 
 		// 拼接场景名称
-		sprintf(lpTextEvent, "%s\n场景名称：“%s”\n", lpTextEvent, SceneID[wSceneIndex + ((gpGlobals->fIsWIN95) ? 0 : 1)][1]);
+		sprintf(lpTextEvent, "%s\n场景名称：“%s”\n地图名称：“%s”\n", lpTextEvent, SceneID[wSceneIndex + ((gpGlobals->fIsWIN95) ? 0 : 1)][1], MapID[rgThisScene.wMapNum][1]);
 
 		// 拼接表头
 		strcat(lpTextEvent, "场景号\t地图号\t进入脚本\t传送脚本\t原始事件数\n");
@@ -1090,7 +1090,7 @@ PAL_SaveGameBaseBattleEffectIndex(
 		lpThisBattleEffectIndex = &gpGlobals->g.rgwBattleEffectIndex[wBattleEffectIndex];
 
 		// 拼接索引
-		sprintf(lpTextBattleEffectIndex, "%s\n%s\n@%s", lpTextBattleEffectIndex, BattlePlayerEffectID[wBattleEffectIndex][1], UTIL_DecToHex(wBattleEffectIndex, lpsHex, 4));
+		sprintf(lpTextBattleEffectIndex, "%s\n%s\n@%s", lpTextBattleEffectIndex, BattleSpriteID[wBattleEffectIndex][1], UTIL_DecToHex(wBattleEffectIndex, lpsHex, 4));
 
 		// 拼接仙术所需修行参数
 		sprintf(lpTextBattleEffectIndex, "%s\t%d\t%d", lpTextBattleEffectIndex, lpThisBattleEffectIndex[0], lpThisBattleEffectIndex[1]);

@@ -272,7 +272,7 @@ PAL_GetScriptMessage(
 			//sprintf(lpBuffer, "%s  %s", lpBuffer, SceneID[rgwOperand][1]);
 			strcat(lpBuffer, "  ");
 
-			strcat(lpBuffer, SceneID[rgwOperand][1]);
+			strcat(lpBuffer, SceneID[rgwOperand - gpGlobals->fIsWIN95][1]);
 			break;
 
 		case kSpriteID:
