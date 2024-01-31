@@ -3,16 +3,16 @@
 
 #include "common.h"
 
-#define PAL_DEBUG 1
+#define PAL_DEBUG 0
 
 // 游戏资源目录
 #if PAL_DEBUG
-static LPCSTR lpszPalPath = "..\\Pal98\\";
-static LPCSTR lpszPalMassagesPath = "..\\Pal98\\MAKMKF\\";
+#define     lpszPalPath                 "..\\Pal98\\"
 #else // PAL_DEBUG
-static LPCSTR lpszPalPath = ".\\";
-static LPCSTR lpszPalMassagesPath = ".\\MAKMKF\\";
+#define     lpszPalPath                 ".\\"
 #endif // PAL_DEBUG
+
+#define     lpszPalMassagesPath         lpszPalPath"\\MAKMKF\\"
 
 static LPCSTR lpZeroWord = "无";
 static LPCSTR lpNullWord = "空";
@@ -71,21 +71,21 @@ static LPCSTR lpThisEvent = "当前对象";
 
 INT
 PAL_MKFGetChunkCount(
-	FILE* fp
+   FILE* fp
 );
 
 INT
 PAL_MKFReadChunk(
-	LPBYTE          lpBuffer,
-	UINT            uiBufferSize,
-	UINT            uiChunkNum,
-	FILE* fp
+   LPBYTE          lpBuffer,
+   UINT            uiBufferSize,
+   UINT            uiChunkNum,
+   FILE* fp
 );
 
 INT
 PAL_MKFGetChunkSize(
-	UINT    uiChunkNum,
-	FILE* fp
+   UINT    uiChunkNum,
+   FILE* fp
 );
 
 #endif // _PALUTILS_H
