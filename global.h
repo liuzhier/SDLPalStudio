@@ -186,13 +186,13 @@ typedef struct tagENEMY
    WORD        wAttackFrames;       // total number of frames when doing normal attack
    WORD        wIdleAnimSpeed;      // speed of the animation when idle
    WORD        wActWaitFrames;      // FIXME: ???
-   WORD        wYPosOffset;
-   SHORT       wAttackSound;        // sound played when this enemy uses normal attack
-   SHORT       wActionSound;        // FIXME: ???
-   SHORT       wMagicSound;         // sound played when this enemy uses magic
-   SHORT       wDeathSound;         // sound played when this enemy dies
-   SHORT       wCallSound;          // sound played when entering the battle
-   WORD        wHealth;             // total HP of the enemy
+   SHORT       sYPosOffset;
+   SHORT       sAttackSound;        // sound played when this enemy uses normal attack
+   SHORT       sActionSound;        // FIXME: ???
+   SHORT       sMagicSound;         // sound played when this enemy uses magic
+   SHORT       sDeathSound;         // sound played when this enemy dies
+   SHORT       sCallSound;          // sound played when entering the battle
+   SHORT       wHealth;             // total HP of the enemy
    WORD        wExp;                // How many EXPs we'll get for beating this enemy
    WORD        wCash;               // how many cashes we'll get for beating this enemy
    WORD        wLevel;              // this enemy's level
@@ -202,11 +202,11 @@ typedef struct tagENEMY
    WORD        wAttackEquivItemRate;// chance for equivalence item
    WORD        wStealItem;          // which item we'll get when stealing from this enemy
    WORD        nStealItem;          // total amount of the items which can be stolen
-   WORD        wAttackStrength;     // normal attack strength
-   WORD        wMagicStrength;      // magical attack strength
-   WORD        wDefense;            // resistance to all kinds of attacking
-   WORD        wDexterity;          // dexterity
-   WORD        wFleeRate;           // chance for successful fleeing
+   SHORT       sAttackStrength;     // normal attack strength
+   SHORT       sMagicStrength;      // magical attack strength
+   SHORT       sDefense;            // resistance to all kinds of attacking
+   SHORT       sDexterity;          // dexterity
+   SHORT       sFleeRate;           // chance for successful fleeing
    WORD        wPoisonResistance;   // resistance to poison
    WORD        wElemResistance[NUM_MAGIC_ELEMENTAL]; // resistance to elemental magics
    WORD        wPhysicalResistance; // resistance to physical attack
@@ -260,24 +260,43 @@ typedef struct tagPLAYERROLES
    PLAYERS            rgwDyingSound;         // sound played when player is dying
 } PLAYERROLES, * LPPLAYERROLES;
 
+typedef enum tagMAGIC_TYPE
+{
+   kMagicTypeNormal        = 0,
+   kMagicTypeAttackAll     = 1,  // draw the effect on each of the enemies
+   kMagicTypeAttackWhole   = 2,  // draw the effect on the whole enemy team
+   kMagicTypeAttackField   = 3,  // draw the effect on the battle field
+   kMagicTypeApplyToPlayer = 4,  // the magic is used on one player
+   kMagicTypeApplyToParty  = 5,  // the magic is used on the whole party
+   kMagicTypeTrance        = 8,  // trance the player
+   kMagicTypeSummon        = 9,  // summon
+} MAGIC_TYPE;
+
+typedef union tagMAGIC_SPECIAL
+{
+   WORD               wSummonEffect;         // summon effect sprite (in F.MKF)
+   SHORT              sLayerOffset;          // limited to non-summon magic.
+                                             // actual layer: PAL_Y(pos) + wYOffset + wMagicLayerOffset
+} MAGIC_SPECIAL, * LPMAGIC_SPECIAL;
+
 typedef struct tagMAGIC
 {
-   WORD               wEffect;               // effect sprite
+   SHORT              sEffect;               // effect sprite
    WORD               wType;                 // type of this magic
-   WORD               wXOffset;
-   WORD               wYOffset;
-   WORD               wSummonEffect;         // summon effect sprite (in F.MKF)
-   SHORT              wSpeed;                // speed of the effect
-   WORD               wKeepEffect;           // FIXME: ???
+   SHORT              sXOffset;
+   SHORT              sYOffset;
+   MAGIC_SPECIAL      rgSpecific;            // have multiple meanings
+   SHORT              sSpeed;                // speed of the effect
+   SHORT              sKeepEffect;           // FIXME: ???
    WORD               wFireDelay;            // start frame of the magic fire stage
-   WORD               wEffectTimes;          // total times of effect
+   SHORT              sEffectTimes;          // total times of effect
    WORD               wShake;                // shake screen
    WORD               wWave;                 // wave screen
    WORD               wUnknown;              // FIXME: ???
    WORD               wCostMP;               // MP cost
-   WORD               wBaseDamage;           // base damage
+   SHORT              sBaseDamage;           // base damage
    WORD               wElemental;            // elemental (0 = No Elemental, last = poison)
-   SHORT              wSound;                // sound played when using this magic
+   SHORT              sSound;                // sound played when using this magic
 } MAGIC, * LPMAGIC;
 
 typedef struct tagBATTLEFIELD

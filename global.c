@@ -5,15 +5,6 @@ GLOBALVARS* const gpGlobals = &_gGlobals;
 
 const static LPSTR* strScriptType[sizeof(enum tagSCRIPTTYPE)] = { "OnEnter", "OnTeleport" };
 const static LPSTR strZeroBug = "@FFFF: 0000 0000 0000 0000 : 停止执行";
-const static LPSTR lpObjectTableHead[][3] = {
-   {"\n#SysObj>\n系统编号\t无效数据\t无效数据\t无效数据\t无效数据\t无效数据\t", "无效数据\t", "无效数据\t系统名称"},
-   {"\n#PlayerObj>\n队员编号\t无效数据\t无效数据\t愤怒脚本\t虚弱数据\t无效数据\t", "无效数据\t", "无效数据\t队员名称"},
-   {"\n#ItemObj>\n道具编号\t图像编号\t售价\t使用脚本\t装备脚本\t投掷脚本\t", "描述脚本\t", "可使用\t可装备\t可投掷\t食掷减少\t作用全体\t可典当\t可装备者\t道具名称"},
-   {"\n#MagicObj>\n仙术编号\t设定编号\t无效数据\t后序脚本\t前序脚本\t无效数据\t", "描述脚本\t", "战前可用\t战时可用\t无效数据\t作用敌方\t作用全体\t仙术名称"},
-   {"\n#EnemyObj>\n敌人编号\t设定编号\t巫抗\t战始脚本\t胜利脚本\t战斗脚本\t", "无效数据\t", "无效数据\t敌人名称"},
-   {"\n#PoisonObj>\n毒性编号\t级别\t颜色\t我中脚本\t无效数据\t敌中脚本\t", "无效数据\t", "无效数据\t毒性名称"},
-   {"\n#OtherObj>\n对象编号\t关联参数\t属性参数\t脚本1\t脚本2\t脚本3\t", "新增参数\t", "作用参数\t对象名称"},
-};
 
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
 #define DO_BYTESWAP(buf, size)
@@ -436,7 +427,7 @@ _PAL_SaveGameScript(
                fScriptJump = FALSE;
 
                // 保存递归整合文档
-               UTIL_SaveTextFile(strScriptSavePath, "w", strScrpitEntry, "Script%s_%03d.txt", lpScriptType, wJumpRound);
+               UTIL_SaveTextFile(strScriptSavePath, "w", strScrpitEntry, "Script%s_%03d.TSV", lpScriptType, wJumpRound);
 
                // 恢复递归前的数据
 
@@ -454,11 +445,11 @@ _PAL_SaveGameScript(
    } while (TRUE);
 
    // 保存 进场脚本文件 文件 ScriptIO.txt
-   UTIL_SaveTextFile(strScriptSavePath, "w", strScrpitEntry, "Script%s_%03d.txt", lpScriptType, wRoundOfJump);
+   UTIL_SaveTextFile(strScriptSavePath, "w", strScrpitEntry, "Script%s_%03d.TSV", lpScriptType, wRoundOfJump);
 
    /*++
    // 创建 进场脚本文件 文件 ScriptIO.txt
-   if ((fpScript = UTIL_OpenFileAtPathForMode(strScriptSavePath, PAL_va(1, "Script%s_%03d.txt", lpScriptType, wRoundOfJump), "w")) == NULL)
+   if ((fpScript = UTIL_OpenFileAtPathForMode(strScriptSavePath, PAL_va(1, "Script%s_%03d.TSV", lpScriptType, wRoundOfJump), "w")) == NULL)
    {
       return;
    }
@@ -493,7 +484,7 @@ PAL_SaveGameScene(
    FILE* fpTextFile;
 
    // 创建文本文件
-   if ((fpTextFile = UTIL_OpenFileAtPathForMode(lpszPalMassagesPath, "Event.txt", "w")) == NULL)
+   if ((fpTextFile = UTIL_OpenFileAtPathForMode(lpszPalMassagesPath, "Event.TSV", "w")) == NULL)
    {
       return;
    }
@@ -515,6 +506,11 @@ PAL_SaveGameScene(
    memset(lpTextEvent, 0, sizeof(lpTextEvent));
 
    nScene = sizeof(*lpScene);
+
+   LPCSTR lpEventTH = "事件号\t隐时间\t方位X\t方位Y\t起始层\t触发脚本\t自动脚本\t状态\t触发模式\t形象号\t形象数\t方向\t当前帧数\t空闲帧数\t无效\t总帧数\t空闲计数\n";
+
+   // 拼接总表头
+   fprintf(fpTextFile, lpEventTH);
 
    // 拼接全部数据
    for (; wSceneIndex < nScene - 1; wSceneIndex++)
@@ -539,8 +535,8 @@ PAL_SaveGameScene(
 
       sprintf(lpTextEvent, "%s%s\t%d\n", lpTextEvent, UTIL_DecToHex(rgThisScene.wScriptOnTeleport, lpsHex, 4), wThisSceneEventNum);
 
-      // 拼接表头
-      strcat(lpTextEvent, "事件号\t隐时间\t方位X\t方位Y\t起始层\t触发脚本\t自动脚本\t状态\t触发模式\t形象号\t形象数\t方向\t当前帧数\t空闲帧数\t无效\t总帧数\t空闲计数\n");
+      // 拼接事件表头
+      strcat(lpTextEvent, lpEventTH);
 
       // 拼接事件数据
       for (; wEventIndex < rgNextScene.wEventObjectIndex; wEventIndex++)
@@ -574,12 +570,11 @@ PAL_SaveGameScene(
       }
    }
 
-   // 保存文件 Event.txt
-   //UTIL_SaveText(lpszPalMassagesPath, "w", lpTextEvent, "Event.txt");
-
    // 释放内存
    free(lpsHex);
    free(lpTextEvent);
+
+   UTIL_CloseFile(fpTextFile);
 }
 
 VOID
@@ -587,24 +582,75 @@ PAL_SaveGameObject(
    VOID
 )
 {
-   WORD  wObjectIndex, wLastObjecteType, wObjectType, wMakeAnything, wObjectArgsIndex;
-   LPSTR lpsHex;
-   LPSTR lpTextObect;
-   LPSTR lpThisWord;
+   INT     i;
+   WORD    wObjectIndex, wObjectType, wMakeAnything, wObjectArgsIndex, wThisWord;
+   WORD    wBaseIndex, wBaseArgsIndex, wBaseArgsLen;
+   LPSTR   lpsHex;
+   LPSTR   lpTextObect;
+   LPSTR   lpThisWord;
+   OBJECT *lpObject;
+   OBJECT  rgThisObject;
+   LPMAGIC lpThisMagic;
+   LPENEMY lpThisEnemy;
+   LPCSTR  lpTextNames[] = {
+      "ObjLabel.TSV", "ObjPlayer.TSV", "ObjItem.TSV", "ObjMagic.TSV",
+      "ObjEnemy.TSV", "ObjPoison.TSV", "ObjOther.TSV"
+   };
+   LPCSTR  lpObjectTableHead[][3] = {
+      {
+         "标签编号\t系统名称\t无效数据\t无效数据\t无效数据\t无效数据\t无效数据\t",
+         "无效数据\t",
+         "无效数据"
+      },
+      {
+         "队员编号\t队员名称\t无效数据\t无效数据\t愤怒脚本\t虚弱数据\t无效数据\t",
+         "无效数据\t",
+         "无效数据"
+      },
+      {
+         "道具编号\t道具名称\t图像编号\t售价\t使用脚本\t装备脚本\t投掷脚本\t",
+         "描述脚本\t",
+         "可使用\t可装备\t可投掷\t食掷减少\t作用全体\t可典当\t可装备者"
+      },
+      {
+         "仙术编号\t仙术名称\t设定编号\t图像编号\t攻击模式\tX轴偏移\tY轴偏移\t图层偏移或神形\t特效速度\t图像残留\t音效延迟\t总耗时\t场景震动\t场景波动\t无效数据\t消耗真气\t基础伤害\t仙术系属\t音效编号\t无效数据\t后序脚本\t前序脚本\t无效数据\t",
+         "描述脚本\t",
+         "战前可用\t战时可用\t无效数据\t作用敌方\t作用全体"
+      },
+      {
+         "敌人编号\t敌人名称\t设定编号\t蠕动帧数\t施法帧数\t进攻帧数\t蠕动速度\t每帧延迟\tY轴偏移\t攻前音效\t击中音效\t施法音效\t死亡音效\t攻击音效\t体力\t可得经验\t可得金钱\t修行\t仙术描述\t默认仙术\t施法概率\t附带描述\t攻击附带\t附带概率\t偷窃描述\t偷窃可得\t可偷数量\t武术\t灵力\t防御\t身法\t吉运\t毒抗\t风抗\t雷抗\t水抗\t火抗\t土抗\t物抗\t行动次数\t灵葫值\t巫抗\t战始脚本\t胜利脚本\t战斗脚本\t",
+         "无效数据\t",
+         "无效数据"
+      },
+      {
+         "毒性编号\t毒性名称\t级别\t颜色\t我中脚本\t无效数据\t敌中脚本\t",
+         "无效数据\t",
+         "无效数据"
+      },
+      {
+         "对象编号\t对象名称\t关联参数\t属性参数\t脚本1\t脚本2\t脚本3\t",
+         "新增参数\t",
+         "作用参数"
+      }
+   };
 
-   OBJECT* lpObject;
-   OBJECT rgThisObject;
-
-   FILE* fpTextFile;
+   FILE* fpTextFile[sizeof(lpTextNames) / sizeof(lpTextNames[0])];
 
    // 创建文本文件
-   if ((fpTextFile = UTIL_OpenFileAtPathForMode(lpszPalMassagesPath, PAL_va(1, "Object.txt"), "w")) == NULL)
+   for (i = 0; i < sizeof(lpTextNames) / sizeof(lpTextNames[0]); i++)
    {
-      return;
+      if ((fpTextFile[i] = UTIL_OpenFileAtPathForMode(lpszPalMassagesPath, lpTextNames[i], "w")) == NULL)
+      {
+         return;
+      }
+
+      // 写入表头
+      fprintf(fpTextFile[i], lpObjectTableHead[i][0]);
+      if (gpGlobals->fIsWIN95) fprintf(fpTextFile[i], lpObjectTableHead[i][1]);
+      fprintf(fpTextFile[i], lpObjectTableHead[i][2]);
    }
 
    wObjectIndex = 0;
-   wLastObjecteType = -1;
    wObjectType = 0;
 
    lpObject = &gpGlobals->g.rgObject;
@@ -613,99 +659,247 @@ PAL_SaveGameObject(
    lpsHex = (LPSTR)UTIL_malloc(5);
    lpTextObect = (LPSTR)UTIL_malloc(0xFFFF * 256);
 
-   // 清空垃圾内存，以空数据填充	
-   memset(lpsHex, 0, sizeof(lpsHex));
-   memset(lpTextObect, 0, sizeof(lpTextObect));
-
    for (wObjectIndex = 0; wObjectIndex < g_TextLib.nWords; wObjectIndex++)
    {
-      // 检测对象类型（注意：仅原版可放心食用......）
-      if (wObjectIndex >= 0 && wObjectIndex <= 35 || wObjectIndex >= 42 && wObjectIndex <= 60)
-         wObjectType = 0;
-      else if (wObjectIndex >= 36 && wObjectIndex <= 41)
-         wObjectType = 1;
-      else if (wObjectIndex >= 61 && wObjectIndex <= 294)
-         wObjectType = 2;
-      else if (wObjectIndex >= 295 && wObjectIndex <= 397)
-         wObjectType = 3;
-      else if (wObjectIndex >= 398 && wObjectIndex <= 550)
-         wObjectType = 4;
-      else if (wObjectIndex >= 551 && wObjectIndex <= 564)
-         wObjectType = 5;
-      else
-         wObjectType = 6;
-
-      if (wLastObjecteType != wObjectType)
-      {
-         // 仅拼接一次表头
-         wLastObjecteType = wObjectType;
-
-         strcat(lpTextObect, "\n");
-
-         strcat(lpTextObect, lpObjectTableHead[wObjectType][0]);
-
-         // 95版比DOS版多一个对象描述脚本
-         if (gpGlobals->fIsWIN95)
-            strcat(lpTextObect, lpObjectTableHead[wObjectType][1]);
-
-         strcat(lpTextObect, lpObjectTableHead[wObjectType][2]);
-      }
+      // 清空垃圾内存，以空数据填充
+      memset(lpTextObect, 0, sizeof(lpTextObect));
+      memset(lpsHex, 0, sizeof(lpsHex));
 
       // 获取当前对象
       rgThisObject = lpObject[wObjectIndex];
 
-      // 拼接对象参数
-      sprintf(lpTextObect, "%s\n@%s\t%d\t%d\t", lpTextObect, UTIL_DecToHex(wObjectIndex, lpsHex, 4), rgThisObject.rgwData[0], rgThisObject.rgwData[1]);
-
-      // 拼接脚本....
-      for (wObjectArgsIndex = 2; wObjectArgsIndex < ((gpGlobals->fIsWIN95) ? 6 : 5); wObjectArgsIndex++)
-      {
-         sprintf(lpTextObect, "%s%s\t", lpTextObect, UTIL_DecToHex(rgThisObject.rgwData[wObjectArgsIndex], lpsHex, 4));
-      }
-
-      // 解档道具、仙术掩码
-      for (wMakeAnything = 0; wMakeAnything < ((wObjectType == 3) ? 5 : ((wObjectType == 2) ? 6 : 0)); wMakeAnything++)
-      {
-         sprintf(lpTextObect, "%s%d\t", lpTextObect, !!(rgThisObject.rgwData[wObjectArgsIndex] & (1 << wMakeAnything)));
-      }
-
-      // 解档道具掩码：可装备者
-      if (wObjectType == 2)
-      {
-         for (wMakeAnything = 0; wMakeAnything < MAX_PLAYER_ROLES; wMakeAnything++)
-         {
-            sprintf(lpTextObect, "%s%d", lpTextObect, !!(rgThisObject.rgwData[wObjectArgsIndex] & (kItemFlagEquipableByPlayerRole_First << wMakeAnything)));
-         }
-
-         strcat(lpTextObect, "\t");
-      }
-
       // 获取当前对象名称
       lpThisWord = PAL_GetWord(wObjectIndex);
 
-      if (!strcmp(lpThisWord, ""))
-         lpThisWord = "<NULL>";
+      if (!strcmp(lpThisWord, "")) lpThisWord = "<NULL>";
 
-      if (wObjectType == 3 || wObjectType == 2)
-         strcat(lpTextObect, lpThisWord);
+      // 拼接 对象ID 及名称
+      sprintf(lpTextObect, "%s\n@%s\t%s", lpTextObect, UTIL_DecToHex(wObjectIndex, lpsHex, 4), lpThisWord);
+
+      // 检测对象类型（注意：仅原版可放心食用......）
+      if (wObjectIndex >= 0x0000 && wObjectIndex <= 0x0023 && wObjectIndex != 0x0018
+         || wObjectIndex >= 0x002A && wObjectIndex <= 0x003C)
+      {
+         // 系统文本标签
+         wObjectType = 0;
+
+         // 拼接脚本....
+         for (wObjectArgsIndex = 0; wObjectArgsIndex < (6 + gpGlobals->fIsWIN95); wObjectArgsIndex++)
+         {
+            sprintf(lpTextObect, "%s\t%s", lpTextObect, UTIL_DecToHex(rgThisObject.rgwData[wObjectArgsIndex], lpsHex, 4));
+         }
+      }
+      else if (wObjectIndex >= 0x0024 && wObjectIndex <= 0x0029)
+      {
+         // 队员对象
+         wObjectType = 1;
+
+         // 拼接对象参数
+         sprintf(lpTextObect, "%s\t%d\t%d", lpTextObect, rgThisObject.rgwData[0], rgThisObject.rgwData[1]);
+
+         // 拼接脚本....
+         for (wObjectArgsIndex = 2; wObjectArgsIndex < (6 + (gpGlobals->fIsWIN95)); wObjectArgsIndex++)
+         {
+            sprintf(lpTextObect, "%s\t%s", lpTextObect, UTIL_DecToHex(rgThisObject.rgwData[wObjectArgsIndex], lpsHex, 4));
+         }
+      }
+      else if (wObjectIndex >= 0x003D && wObjectIndex <= 0x0126)
+      {
+         // 道具对象
+         wObjectType = 2;
+
+         wBaseArgsLen = sizeof(MAGIC) / sizeof(WORD);
+
+         // 拼接对象参数
+         sprintf(lpTextObect, "%s\t%d\t%d\t", lpTextObect, rgThisObject.rgwData[0], rgThisObject.rgwData[1]);
+
+         // 拼接脚本....
+         for (wObjectArgsIndex = 2; wObjectArgsIndex < ((gpGlobals->fIsWIN95) ? 6 : 5); wObjectArgsIndex++)
+         {
+            sprintf(lpTextObect, "%s%s\t", lpTextObect, UTIL_DecToHex(rgThisObject.rgwData[wObjectArgsIndex], lpsHex, 4));
+         }
+
+         // 解档道具掩码
+         for (wMakeAnything = 0; wMakeAnything < ((wObjectType == 3) ? 5 : ((wObjectType == 2) ? 6 : 0)); wMakeAnything++)
+         {
+            sprintf(lpTextObect, "%s%d\t", lpTextObect, !!(rgThisObject.rgwData[wObjectArgsIndex] & (1 << wMakeAnything)));
+         }
+
+         for (wMakeAnything = 0; wMakeAnything < MAX_PLAYER_ROLES; wMakeAnything++)
+         {
+            // 写两个 !! 是指取两次真假，将非 0 值化为 1
+            sprintf(lpTextObect, "%s%d", lpTextObect, !!(rgThisObject.rgwData[wObjectArgsIndex] & (kItemFlagEquipableByPlayerRole_First << wMakeAnything)));
+         }
+      }
+      else if (wObjectIndex == 0x0018 || wObjectIndex >= 0x0127 && wObjectIndex <= 0x018D)
+      {
+         // 仙术对象
+         wObjectType = 3;
+
+         // 获取结构体成员数
+         wBaseArgsLen = sizeof(MAGIC) / sizeof(WORD);
+
+         // 获取仙术类型
+         wBaseIndex = rgThisObject.rgwData[0];
+
+         // 获取当前仙术基数据
+         lpThisMagic = &gpGlobals->g.lprgMagic[wBaseIndex];
+
+         // 拼接仙术基索引
+         sprintf(lpTextObect, "%s\t%d", lpTextObect, wBaseIndex);
+
+         // 拼接仙术基参数
+         for (wBaseArgsIndex = 0; wBaseArgsIndex < wBaseArgsLen; wBaseArgsIndex++)
+         {
+            switch (wBaseArgsIndex)
+            {
+            case 0:
+            case 2:
+            case 3:
+            case 5:
+            case 6:
+            case 8:
+            case 13:
+            case 15:
+               sprintf(lpTextObect, "%s\t%d", lpTextObect, ((SHORT*)lpThisMagic)[wBaseArgsIndex]);
+               break;
+
+            case 4:
+               if (lpThisMagic->wType == kMagicTypeSummon)
+                  sprintf(lpTextObect, "%s\t%d", lpTextObect, lpThisMagic->rgSpecific.wSummonEffect);
+               else
+                  sprintf(lpTextObect, "%s\t%d", lpTextObect, lpThisMagic->rgSpecific.sLayerOffset);
+               break;
+
+            default:
+               sprintf(lpTextObect, "%s\t%d", lpTextObect, ((WORD*)lpThisMagic)[wBaseArgsIndex]);
+               break;
+            }
+         }
+
+         // 拼接对象参数
+         sprintf(lpTextObect, "%s\t%d", lpTextObect, rgThisObject.rgwData[1]);
+
+         // 拼接脚本....
+         for (wObjectArgsIndex = 2; wObjectArgsIndex < (5 + (gpGlobals->fIsWIN95)); wObjectArgsIndex++)
+         {
+            sprintf(lpTextObect, "%s\t%s", lpTextObect, UTIL_DecToHex(rgThisObject.rgwData[wObjectArgsIndex], lpsHex, 4));
+         }
+
+         // 解档仙术掩码
+         for (wMakeAnything = 0; wMakeAnything < ((wObjectType == 3) ? 5 : ((wObjectType == 2) ? 6 : 0)); wMakeAnything++)
+         {
+            sprintf(lpTextObect, "%s\t%d", lpTextObect, !!(rgThisObject.rgwData[wObjectArgsIndex] & (1 << wMakeAnything)));
+         }
+      }
+      else if (wObjectIndex >= 0x018E && wObjectIndex <= 0x0226)
+      {
+         // 敌人对象
+         wObjectType = 4;
+
+         // 获取结构体成员数
+         wBaseArgsLen = sizeof(ENEMY) / sizeof(WORD);
+
+         // 获取敌方类型
+         wBaseIndex = rgThisObject.rgwData[0];
+
+         // 获取当前敌人基数据
+         lpThisEnemy = &gpGlobals->g.lprgEnemy[wBaseIndex];
+
+         // 拼接敌人基索引
+         sprintf(lpTextObect, "%s\t%d", lpTextObect, wBaseIndex);
+
+         // 拼接敌人基参数
+         for (wBaseArgsIndex = 0; wBaseArgsIndex < wBaseArgsLen; wBaseArgsIndex++)
+         {
+            // 翻译对象名称
+            if (wBaseArgsIndex == 15 || wBaseArgsIndex == 17 || wBaseArgsIndex == 19)
+            {
+               // 获取当前对象名称
+               lpThisWord = PAL_GetWord(((WORD*)lpThisEnemy)[wBaseArgsIndex]);
+
+               if (!strcmp(lpThisWord, "")) lpThisWord = "<NULL>";
+
+               // 拼接 对象ID 及名称
+               sprintf(lpTextObect, "%s\t%s", lpTextObect, lpThisWord);
+            }
+
+            switch (wBaseArgsIndex)
+            {
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+            case 21:
+            case 22:
+            case 23:
+            case 24:
+            case 25:
+               sprintf(lpTextObect, "%s\t%d", lpTextObect, ((SHORT*)lpThisEnemy)[wBaseArgsIndex]);
+               break;
+
+            default:
+               sprintf(lpTextObect, "%s\t%d", lpTextObect, ((WORD*)lpThisEnemy)[wBaseArgsIndex]);
+               break;
+            }
+         }
+
+         // 拼接对象参数
+         sprintf(lpTextObect, "%s\t%d", lpTextObect, rgThisObject.rgwData[1]);
+
+         // 拼接脚本....
+         for (wObjectArgsIndex = 2; wObjectArgsIndex < (6 + (gpGlobals->fIsWIN95)); wObjectArgsIndex++)
+         {
+            sprintf(lpTextObect, "%s\t%s", lpTextObect, UTIL_DecToHex(rgThisObject.rgwData[wObjectArgsIndex], lpsHex, 4));
+         }
+      }
+      else if (wObjectIndex >= 0x0227 && wObjectIndex <= 0x0234)
+      {
+         // 毒性对象
+         wObjectType = 5;
+
+         // 拼接对象参数
+         sprintf(lpTextObect, "%s\t%d\t%d", lpTextObect, rgThisObject.rgwData[0], rgThisObject.rgwData[1]);
+
+         // 拼接脚本....
+         for (wObjectArgsIndex = 2; wObjectArgsIndex < (6 + (gpGlobals->fIsWIN95)); wObjectArgsIndex++)
+         {
+            sprintf(lpTextObect, "%s\t%s", lpTextObect, UTIL_DecToHex(rgThisObject.rgwData[wObjectArgsIndex], lpsHex, 4));
+         }
+      }
       else
-         sprintf(lpTextObect, "%s%d\t%s", lpTextObect, rgThisObject.rgwData[wObjectArgsIndex], lpThisWord);
+      {
+         // 用户自定义的对象
+         wObjectType = 6;
 
-      // 保存 进场脚本文件 文件 ScriptEntry.txt
-      fprintf(fpTextFile, lpTextObect);
+         // 拼接对象参数
+         sprintf(lpTextObect, "%s\t%d\t%d", lpTextObect, rgThisObject.rgwData[0], rgThisObject.rgwData[1]);
 
-      // 释放内存
-      memset(lpTextObect, 0, sizeof(lpTextObect));
+         // 拼接脚本....
+         for (wObjectArgsIndex = 2; wObjectArgsIndex < (6 + (gpGlobals->fIsWIN95)); wObjectArgsIndex++)
+         {
+            sprintf(lpTextObect, "%s\t%s", lpTextObect, UTIL_DecToHex(rgThisObject.rgwData[wObjectArgsIndex], lpsHex, 4));
+         }
+      }
+
+      // 逐行写入 进场对象文件
+      fprintf(fpTextFile[wObjectType], lpTextObect);
 
       // 解档进度.....
       printf("Object: %d / %d\n", wObjectIndex + 1, g_TextLib.nWords);
    }
 
+   // 将仙术说明写入文档。。。
+   fprintf(fpTextFile[3], "\n\n\n提示：请注意攻击模式！\t\t\t提示：请注意仙术系属！\n0 = 单特效（攻击敌方单人）\t\t\t0 = 剑系（无系）\n1 = 多特效（攻击敌方全体）\t\t\t1 -> 5 = 五灵\n2 = 单特效（攻击敌方全体）\t\t\t6 = 毒系\n3 = 全屏单特效（攻击敌方全体）\t\t\t7 = 防守系（治愈系，非）\n4 = 单特效（我方单人防守）\n5 = 多特效（我方全体防守）\n8 = 施法者自己觉醒（施法者变身时的过渡效果）\n9 = 召唤神\n\n\n");
+
    // 释放内存
    free(lpsHex);
    free(lpTextObect);
 
-   fclose(fpTextFile);
+   for (i = 0; i < sizeof(lpTextNames) / sizeof(lpTextNames[0]); i++) UTIL_CloseFile(fpTextFile[i]);
 }
 
 VOID
@@ -722,7 +916,7 @@ PAL_SaveGameScript(
    FILE* fpTextFile;
 
    // 创建文本文件
-   if ((fpTextFile = UTIL_OpenFileAtPathForMode(lpszPalMassagesPath, PAL_va(1, "ScriptEntry.txt"), "w")) == NULL)
+   if ((fpTextFile = UTIL_OpenFileAtPathForMode(lpszPalMassagesPath, PAL_va(1, "ScriptEntry.TSV"), "w")) == NULL)
    {
       return;
    }
@@ -774,7 +968,7 @@ PAL_SaveGameScript(
    free(lpTextScrpitEntry);
 
    // 关闭文件
-   fclose(fpTextFile);
+   UTIL_CloseFile(fpTextFile);
 }
 
 VOID
@@ -826,7 +1020,7 @@ PAL_SaveGameBaseStore(
    }
 
    // 保存文件 Store.txt
-   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextStore, "Store.txt");
+   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextStore, "Store.TSV");
 
    // 释放内存
    free(lpsHex);
@@ -846,14 +1040,10 @@ PAL_SaveGameBaseEnemy(
    memset(lpsHex, 0, sizeof(lpsHex));
    memset(lpTextEnemyBase, 0, sizeof(lpTextEnemyBase));
 
+   strcat(lpTextEnemyBase, "敌人编号\t蠕动帧数\t施法帧数\t进攻帧数\t蠕动速度\t每帧延迟\tY轴偏移\t攻前音效\t击中音效\t施法音效\t死亡音效\t攻击音效\t体力\t可得经验\t可得金钱\t修行\t仙术描述\t默认仙术\t施法概率\t附带描述\t攻击附带\t附带概率\t偷窃描述\t偷窃可得\t可偷数量\t武术\t灵力\t防御\t身法\t吉运\t毒抗\t风抗\t雷抗\t水抗\t火抗\t土抗\t物抗\t行动次数\t灵葫值\n");
+
    for (wEnemyBaseIndex = 0; wEnemyBaseIndex < gpGlobals->g.nEnemy; wEnemyBaseIndex++)
    {
-      if (wEnemyBaseIndex % 0x0010 == 0)
-      {
-         // 拼接表头
-         strcat(lpTextEnemyBase, "\n敌人编号\t蠕动帧数\t施法帧数\t进攻帧数\t蠕动速度\t每帧延迟\tY轴偏移\t攻前音效\t击中音效\t施法音效\t死亡音效\t攻击音效\t体力\t可得经验\t可得金钱\t修行\t仙术描述\t默认仙术\t施法概率\t附带描述\t攻击附带\t附带概率\t偷窃描述\t偷窃可得\t可偷数量\t武术\t灵力\t防御\t身法\t吉运\t毒抗\t风抗\t雷抗\t水抗\t火抗\t土抗\t物抗\t行动次数\t灵葫值\n");
-      }
-
       // 获取当前敌人基数据
       lpThisEnemy = (WORD*)&gpGlobals->g.lprgEnemy[wEnemyBaseIndex];
 
@@ -888,7 +1078,7 @@ PAL_SaveGameBaseEnemy(
    }
 
    // 保存文件 EnemyBase.txt
-   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextEnemyBase, "EnemyBase.txt");
+   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextEnemyBase, "EnemyBase.TSV");
 
    // 释放内存
    free(lpsHex);
@@ -944,7 +1134,7 @@ PAL_SaveGameBaseEnemyTeam(
    }
 
    // 保存文件 EnemyTeam.txt
-   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextEnemyTeam, "EnemyTeam.txt");
+   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextEnemyTeam, "EnemyTeam.TSV");
 
    // 释放内存
    free(lpsHex);
@@ -1000,7 +1190,7 @@ PAL_SaveGameBaseMagic(
    }
 
    // 保存文件 MagicBase.txt
-   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextMagicBase, "MagicBase.txt");
+   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextMagicBase, "MagicBase.TSV");
 
    // 释放内存
    free(lpsHex);
@@ -1048,7 +1238,7 @@ PAL_SaveGameBaseBattleField(
    }
 
    // 保存文件 BattleField.txt
-   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextBattleField, "BattleField.txt");
+   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextBattleField, "BattleField.TSV");
 
    // 释放内存
    free(lpsHex);
@@ -1071,14 +1261,13 @@ PAL_SaveGameBaseLevelUpMagic(
    memset(lpTextLevelUpMagic, 0, sizeof(lpTextLevelUpMagic));
    memset(lpThisMagic, 0, sizeof(lpThisMagic));
 
+   // 拼接表头
+   strcat(lpTextLevelUpMagic, "修行编号\t所需修行\t李逍遥仙术\t所需修行\t赵灵儿仙术\t所需修行\t林月如仙术\t所需修行\t巫后仙术\t所需修行\t阿奴仙术\t仙术详情\n");
+
+   LPCSTR PlayerName[] = { "李", "赵", "林", "巫", "奴", "盖" };
+
    for (wLevelUpMagicIndex = 0; wLevelUpMagicIndex < gpGlobals->g.nLevelUpMagic; wLevelUpMagicIndex++)
    {
-      if (wLevelUpMagicIndex % 10 == 0)
-      {
-         // 拼接表头
-         strcat(lpTextLevelUpMagic, "\n修行编号\t所需修行\t队员一\t所需修行\t队员二\t所需修行\t队员三\t所需修行\t队员四\t所需修行\t队员五\t所需修行\t仙术详情\n");
-      }
-
       // 获取当前仙术所需修行条目
       lpThisLevelUpMagic = &gpGlobals->g.lprgLevelUpMagic[wLevelUpMagicIndex];
 
@@ -1093,7 +1282,7 @@ PAL_SaveGameBaseLevelUpMagic(
 
          sprintf(lpTextLevelUpMagic, "%s\t%d\t%s", lpTextLevelUpMagic, wThisLevel, UTIL_DecToHex(wThisWord, lpsHex, 4));
 
-         sprintf(lpThisMagic, "%s%d-%d.%s|", lpThisMagic, wLevelUpMagicArgsIndex + 1, wThisLevel, (wThisWord == 0x0000) ? lpZeroWord : PAL_GetWord(wThisWord));
+         sprintf(lpThisMagic, "%s%s-%d.%s|", lpThisMagic, PlayerName[wLevelUpMagicArgsIndex], wThisLevel, (wThisWord == 0x0000) ? lpZeroWord : PAL_GetWord(wThisWord));
 
       }
 
@@ -1107,7 +1296,7 @@ PAL_SaveGameBaseLevelUpMagic(
    }
 
    // 保存文件 LevelUpMagic.txt
-   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextLevelUpMagic, "LevelUpMagic.txt");
+   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextLevelUpMagic, "LevelUpMagic.TSV");
 
    // 释放内存
    free(lpsHex);
@@ -1130,18 +1319,16 @@ PAL_SaveGameBaseBattleEffectIndex(
    memset(lpTextBattleEffectIndex, 0, sizeof(lpTextBattleEffectIndex));
 
    // 拼接表头
-   strcat(lpTextBattleEffectIndex, "\n战效编号\t索引1\t索引2");
+   strcat(lpTextBattleEffectIndex, "战效编号\t索引1\t索引2\t备注\n");
 
    for (wBattleEffectIndex = 0; wBattleEffectIndex < 10; wBattleEffectIndex++)
    {
       // 获取当前仙术所需修行条目
       lpThisBattleEffectIndex = &gpGlobals->g.rgwBattleEffectIndex[wBattleEffectIndex];
 
-      // 拼接索引
-      sprintf(lpTextBattleEffectIndex, "%s\n%s\n@%s", lpTextBattleEffectIndex, BattleSpriteID[wBattleEffectIndex][1], UTIL_DecToHex(wBattleEffectIndex, lpsHex, 4));
-
-      // 拼接仙术所需修行参数
-      sprintf(lpTextBattleEffectIndex, "%s\t%d\t%d", lpTextBattleEffectIndex, lpThisBattleEffectIndex[0], lpThisBattleEffectIndex[1]);
+      // 拼接索引、仙术所需修行参数、备注
+      sprintf(lpTextBattleEffectIndex, "%s@%s\t%d\t%d\t%s\n", lpTextBattleEffectIndex,
+         UTIL_DecToHex(wBattleEffectIndex, lpsHex, 4), lpThisBattleEffectIndex[0], lpThisBattleEffectIndex[1], BattleSpriteID[wBattleEffectIndex][1]);
 
       // 解档进度.....
       printf("BattleEffectIndex: %d / %d\n", wBattleEffectIndex + 1, 10);
@@ -1149,7 +1336,7 @@ PAL_SaveGameBaseBattleEffectIndex(
    }
 
    // 保存文件 BattleEffectIndex.txt
-   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextBattleEffectIndex, "BattleEffectIndex.txt");
+   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextBattleEffectIndex, "BattleEffectIndex.TSV");
 
    // 释放内存
    free(lpsHex);
@@ -1173,7 +1360,7 @@ PAL_SaveGameBaseEnemyPos(
    memset(lpTextEnemyPos, 0, sizeof(lpTextEnemyPos));
 
    // 拼接表头
-   strcat(lpTextEnemyPos, "\nEMPos\tPos0_X\tPos0_Y\tPos1_X\tPos1_Y\tPos2_X\tPos2_Y\tPos3_X\tPos3_Y\tPos4_X\tPos4_Y");
+   strcat(lpTextEnemyPos, "EMPos\tPos0_X\tPos0_Y\tPos1_X\tPos1_Y\tPos2_X\tPos2_Y\tPos3_X\tPos3_Y\tPos4_X\tPos4_Y");
 
    for (wEnemyPosIndex = 0; wEnemyPosIndex < MAX_ENEMIES_IN_TEAM; wEnemyPosIndex++)
    {
@@ -1196,7 +1383,7 @@ PAL_SaveGameBaseEnemyPos(
    }
 
    // 保存文件 EnemyPos.txt
-   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextEnemyPos, "EnemyPos.txt");
+   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextEnemyPos, "EnemyPos.TSV");
 
    // 释放内存
    free(lpsHex);
@@ -1215,19 +1402,16 @@ PAL_SaveGameBaseLevelUpExp(
    memset(lpsHex, 0, sizeof(lpsHex));
    memset(lpTextLevelUpExp, 0, sizeof(lpTextLevelUpExp));
 
+   // 拼接表头
+   strcat(lpTextLevelUpExp, "修行编号\t所需经历\t修行数\n");
+
    for (wLevelUpExpIndex = 0; wLevelUpExpIndex < MAX_LEVELS + 1; wLevelUpExpIndex++)
    {
-      if (wLevelUpExpIndex % 10 == 0)
-      {
-         // 拼接表头
-         strcat(lpTextLevelUpExp, "\n\n修行编号\t所需经历\t修行数");
-      }
-
       // 拼接索引
-      sprintf(lpTextLevelUpExp, "%s\n@%s", lpTextLevelUpExp, UTIL_DecToHex(wLevelUpExpIndex, lpsHex, 4));
+      sprintf(lpTextLevelUpExp, "%s@%s", lpTextLevelUpExp, UTIL_DecToHex(wLevelUpExpIndex, lpsHex, 4));
 
       // 拼接仙术所需修行参数
-      sprintf(lpTextLevelUpExp, "%s\t%d\t修行%d", lpTextLevelUpExp, gpGlobals->g.rgLevelUpExp[wLevelUpExpIndex], wLevelUpExpIndex);
+      sprintf(lpTextLevelUpExp, "%s\t%d\t修行%d\n", lpTextLevelUpExp, gpGlobals->g.rgLevelUpExp[wLevelUpExpIndex], wLevelUpExpIndex);
 
       // 解档进度.....
       printf("LevelUpExp: %d / %d\n", wLevelUpExpIndex + 1, MAX_LEVELS + 1);
@@ -1235,7 +1419,7 @@ PAL_SaveGameBaseLevelUpExp(
    }
 
    // 保存文件 LevelUpExp.txt
-   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextLevelUpExp, "LevelUpExp.txt");
+   UTIL_SaveText(lpszPalMassagesPath, "w", lpTextLevelUpExp, "LevelUpExp.TSV");
 
    // 释放内存
    free(lpsHex);

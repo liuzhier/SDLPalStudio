@@ -35,14 +35,14 @@ main(
    // 解档商店
    PAL_SaveGameBaseStore();
    //
-   // 解档敌方基数据
-   PAL_SaveGameBaseEnemy();
+   // 解档敌方基数据  废弃的函数：该函数已被 PAL_SaveGameObject 吸收
+   //PAL_SaveGameBaseEnemy();
    //
    // 解档敌方队列
    PAL_SaveGameBaseEnemyTeam();
    //
-   // 解档仙术基数据
-   PAL_SaveGameBaseMagic();
+   // 解档仙术基数据  废弃的函数：该函数已被 PAL_SaveGameObject 吸收
+   //PAL_SaveGameBaseMagic();
    //
    // 解档战场对灵抗的影响以及战场背景波动
    PAL_SaveGameBaseBattleField();
@@ -64,6 +64,6 @@ main(
 
    printf("	游戏数据解档完成\n");
 
-   scanf_s("%d", &iEndInputCharacters);
+   getchar();
    return 0;
 }

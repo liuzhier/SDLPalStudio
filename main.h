@@ -9,6 +9,4 @@
 #include "text.h"
 #include "util.h"
 
-INT iEndInputCharacters;
-
 #endif
